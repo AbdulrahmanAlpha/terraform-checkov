@@ -1,0 +1,68 @@
+name: Terraform Security Scan (Checkov)
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  checkov:
+    name: Run Checkov
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Checkov against terraform/
+        id: checkov
+        run: |
+          mkdir -p checkov-output
+          # run Checkov and save outputs (json and junit)
+          checkov -d ./terraform --output json --quiet > checkov-output/checkov-report.json || true
+          checkov -d ./terraform --output junitxml --quiet > checkov-output/checkov-report.xml || true
+          # print summary to log
+          checkov -d ./terraform --compact
+
+      - name: Upload Checkov JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report-json
+          path: checkov-output/checkov-report.json
+
+      - name: Upload Checkov JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report-junit
+          path: checkov-output/checkov-report.xml
+
+      - name: Fail job if Checkov found failures
+        # Checkov returns non-zero for failed checks but we used `|| true` above
+        # so we now evaluate content of JSON report to decide failure.
+        run: |
+          if [ -f checkov-output/checkov-report.json ]; then
+            FAIL_COUNT=$(jq '.results.failed_checks | length' checkov-output/checkov-report.json)
+            echo "Checkov failed_checks=$FAIL_COUNT"
+            if [ "$FAIL_COUNT" -gt 0 ]; then
+              echo "Security policy violations found by Checkov: failing the job."
+              cat checkov-output/checkov-report.json
+              exit 1
+            else
+              echo "No failed checks. ✅"
+            fi
+          else
+            echo "No Checkov report found — please check logs."
+            exit 1
+          fi
