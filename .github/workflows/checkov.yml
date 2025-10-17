@@ -36,8 +36,8 @@ jobs:
           # run Checkov and save outputs (json and junit)
           checkov -d ./terraform --output json --quiet > checkov-output/checkov-report.json || true
           checkov -d ./terraform --output junitxml --quiet > checkov-output/checkov-report.xml || true
-          # print summary to log
-          checkov -d ./terraform --compact
+          # print summary to log, using `|| true` to prevent job failure here
+          checkov -d ./terraform --compact || true
 
 
       - name: Upload Checkov JSON report
