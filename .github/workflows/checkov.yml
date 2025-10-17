@@ -19,10 +19,15 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install dependencies and Upgrade Checkov
+    # This step now includes an explicit upgrade of checkov to resolve the 'LegacyVersion' ImportError.
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          # CRITICAL FIX: Explicitly upgrade checkov to ensure a version compatible with Python 3.11's dependencies is used.
+          pip install --upgrade checkov
+          # Install the 'jq' tool needed for the final failure check
+          sudo apt-get install -y jq
 
       - name: Run Checkov against terraform/
         id: checkov
@@ -33,6 +38,7 @@ jobs:
           checkov -d ./terraform --output junitxml --quiet > checkov-output/checkov-report.xml || true
           # print summary to log
           checkov -d ./terraform --compact
+
 
       - name: Upload Checkov JSON report
         if: always()
@@ -66,3 +72,4 @@ jobs:
             echo "No Checkov report found — please check logs."
             exit 1
           fi
+
