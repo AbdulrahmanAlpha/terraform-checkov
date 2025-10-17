@@ -133,6 +133,7 @@ Steps:
 | S3 bucket is public          | `CKV_AWS_20` | High     | Use `private` ACL                             |
 | Security group open to world | `CKV_AWS_23` | Critical | Restrict to known CIDRs                       |
 | Missing encryption           | `CKV_AWS_19` | Medium   | Enable `server_side_encryption_configuration` |
+
 ### a Checkov found a security issue
 ![](./docs/image.png)
 
